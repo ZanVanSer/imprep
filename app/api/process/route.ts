@@ -1,8 +1,8 @@
-import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
+import JSZip from 'jszip';
 import {
   getFileValidationError,
-  processImageFile,
+  processImageBuffer,
   ProcessingError,
   sanitizeFileSuffix,
   toSkippedUpload,
@@ -17,7 +17,7 @@ import {
   ProcessRequest,
   ProcessResponse
 } from '@/lib/types';
-import JSZip from 'jszip';
+import { getStorageBucket, getSupabaseAdminClient } from '@/lib/supabase-server';
 
 export const runtime = 'nodejs';
 
@@ -43,13 +43,25 @@ function parseJsonSettings(settings: Partial<AppSettings> | undefined): AppSetti
   };
 }
 
-function buildBlobPath(params: { kind: 'source' | 'result' | 'zip'; runId: string; filename: string }) {
-  const safeName = params.filename.replace(/[^a-zA-Z0-9._-]/g, '-');
-  return `imprep/${params.kind}/${params.runId}/${safeName}`;
-}
-
 export async function POST(request: Request) {
   try {
+    const authHeader = request.headers.get('authorization');
+    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
+
+    const supabase = getSupabaseAdminClient();
+    const {
+      data: { user },
+      error: authError
+    } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
+
     const payload = (await request.json()) as ProcessRequest;
     const sources = Array.isArray(payload.sources) ? payload.sources : [];
 
@@ -84,9 +96,25 @@ export async function POST(request: Request) {
         })
     );
 
-    const settled = await Promise.allSettled(validFiles.map((file) => processImageFile(file, settings)));
+    const bucket = getStorageBucket();
+    const settled = await Promise.allSettled(
+      validFiles.map(async (file) => {
+        const { data, error } = await supabase.storage.from(bucket).download(file.storagePath);
+
+        if (error || !data) {
+          throw new ProcessingError(error?.message ?? `Failed to download "${file.name}".`);
+        }
+
+        return processImageBuffer({
+          file,
+          inputBuffer: Buffer.from(await data.arrayBuffer()),
+          settings
+        });
+      })
+    );
+
     const successful = settled.filter(
-      (result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof processImageFile>>> =>
+      (result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof processImageBuffer>>> =>
         result.status === 'fulfilled'
     );
     const failed = settled
@@ -106,24 +134,38 @@ export async function POST(request: Request) {
     const uploadedResults = await Promise.all(
       successful.map(async ({ value }) => {
         zip.file(value.result.outputName, value.buffer);
-        const blob = await put(
-          buildBlobPath({
-            kind: 'result',
-            runId,
-            filename: value.result.outputName
-          }),
-          value.buffer,
-          {
-            access: 'public',
-            addRandomSuffix: true,
-            contentType: value.result.finalMimeType
-          }
-        );
+        const resultPath = `${user.id}/results/${runId}/${value.result.outputName}`;
+        const { error: uploadError } = await supabase.storage.from(bucket).upload(resultPath, value.buffer, {
+          contentType: value.result.finalMimeType,
+          upsert: false
+        });
+
+        if (uploadError) {
+          throw new ProcessingError(uploadError.message);
+        }
+
+        const { data: signedPreview, error: previewError } = await supabase.storage
+          .from(bucket)
+          .createSignedUrl(resultPath, 3600);
+
+        if (previewError || !signedPreview) {
+          throw new ProcessingError(previewError?.message ?? 'Failed to sign result preview URL.');
+        }
+
+        const { data: signedDownload, error: downloadError } = await supabase.storage
+          .from(bucket)
+          .createSignedUrl(resultPath, 3600, {
+            download: value.result.outputName
+          });
+
+        if (downloadError || !signedDownload) {
+          throw new ProcessingError(downloadError?.message ?? 'Failed to sign result download URL.');
+        }
 
         return {
           ...value.result,
-          previewUrl: blob.url,
-          downloadUrl: blob.downloadUrl
+          previewUrl: signedPreview.signedUrl,
+          downloadUrl: signedDownload.signedUrl
         };
       })
     );
@@ -133,22 +175,30 @@ export async function POST(request: Request) {
       compression: 'DEFLATE',
       compressionOptions: { level: 6 }
     });
-    const zipBlob = await put(
-      buildBlobPath({
-        kind: 'zip',
-        runId,
-        filename: 'imprep-results.zip'
-      }),
-      Buffer.from(zipBuffer),
-      {
-        access: 'public',
-        addRandomSuffix: true,
-        contentType: 'application/zip'
-      }
-    );
+    const zipPath = `${user.id}/zips/${runId}/imprep-results.zip`;
+    const { error: zipUploadError } = await supabase.storage
+      .from(bucket)
+      .upload(zipPath, Buffer.from(zipBuffer), {
+        contentType: 'application/zip',
+        upsert: false
+      });
+
+    if (zipUploadError) {
+      throw new ProcessingError(zipUploadError.message);
+    }
+
+    const { data: signedZip, error: zipSignError } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(zipPath, 3600, {
+        download: 'imprep-results.zip'
+      });
+
+    if (zipSignError || !signedZip) {
+      throw new ProcessingError(zipSignError?.message ?? 'Failed to sign ZIP URL.');
+    }
 
     const response: ProcessResponse = {
-      zipDownloadUrl: uploadedResults.length > 0 ? zipBlob.downloadUrl : null,
+      zipDownloadUrl: uploadedResults.length > 0 ? signedZip.signedUrl : null,
       results: uploadedResults,
       skipped: [
         ...skipped,

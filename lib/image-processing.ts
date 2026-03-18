@@ -183,22 +183,18 @@ async function processGif(
   };
 }
 
-export async function processImageFile(
-  file: UploadedSource,
-  settings: AppSettings
-): Promise<{ result: Omit<ProcessedImageResult, 'downloadUrl' | 'previewUrl'>; buffer: Buffer }> {
+export async function processImageBuffer(params: {
+  file: UploadedSource;
+  inputBuffer: Buffer;
+  settings: AppSettings;
+}): Promise<{ result: Omit<ProcessedImageResult, 'downloadUrl' | 'previewUrl'>; buffer: Buffer }> {
+  const { file, inputBuffer, settings } = params;
+
   validateFile({
     name: file.name,
     size: file.sizeBytes,
     type: file.mimeType
   });
-  const uploadResponse = await fetch(file.url, { cache: 'no-store' });
-
-  if (!uploadResponse.ok) {
-    throw new ProcessingError(`"${file.name}" could not be downloaded for processing.`);
-  }
-
-  const inputBuffer = Buffer.from(await uploadResponse.arrayBuffer());
 
   if (file.mimeType === 'image/gif') {
     return processGif(file, inputBuffer, settings);

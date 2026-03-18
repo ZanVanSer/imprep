@@ -2,6 +2,7 @@
 .next
 node_modules
 .vercel
+docs
 .env
 .env.local
 .env.development.local
@@ -11,3 +12,4 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.env*.local

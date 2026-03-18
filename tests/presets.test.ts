@@ -61,7 +61,7 @@ test('jpeg quality bands stay aligned with compression modes', () => {
   assert.equal(getJpegQuality('sharp'), 86);
 });
 
-test('29 MB files are now accepted by validation', () => {
+test('29 MB files are accepted by validation', () => {
   const file = new File([new Uint8Array(29 * 1024 * 1024)], 'large.jpg', {
     type: 'image/jpeg'
   });
