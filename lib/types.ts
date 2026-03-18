@@ -65,9 +65,7 @@ export interface SkippedUpload {
 }
 
 export interface UploadedSource {
-  pathname: string;
-  url: string;
-  downloadUrl?: string;
+  storagePath: string;
   name: string;
   mimeType: string;
   sizeBytes: number;

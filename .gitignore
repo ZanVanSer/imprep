@@ -2,6 +2,7 @@
 .next
 node_modules
 .vercel
+docs
 .env
 .env.local
 .env.development.local
