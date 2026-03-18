@@ -471,9 +471,6 @@ export default function HomePage() {
               <p>Upload images, choose an email preset, and prepare clean exports.</p>
             </div>
             <div className="summary-stats">
-              <button className="secondary-button" type="button" onClick={handleSignOut}>
-                Sign out
-              </button>
               <div>
                 <strong>{uploadItems.length}</strong>
                 <span>files selected</span>
@@ -507,9 +504,6 @@ export default function HomePage() {
                   onChange={handleFileInput}
                 />
                 <strong>Drop images here or click to browse</strong>
-                <span>
-                  Upload up to {MAX_FILES} files, {getFileLimitLabel()} each, {getBatchLimitLabel()} total.
-                </span>
               </label>
               {uploadItems.length > 0 ? (
                 <div className="upload-summary">
@@ -542,7 +536,7 @@ export default function HomePage() {
             <div className="panel stack">
               <div className="panel-header">
                 <h2>Settings</h2>
-                <p>Global settings apply to the full batch in this MVP.</p>
+                <p>Global settings apply to the full batch.</p>
               </div>
 
               <div className="preset-grid">
@@ -703,7 +697,6 @@ export default function HomePage() {
             <div className="results-header">
               <div className="panel-header">
                 <h2>Results</h2>
-                <p>Processed images are returned through signed URLs from your private storage bucket.</p>
               </div>
               {zipDownloadUrl ? (
                 <a className="primary-button link-button" href={zipDownloadUrl}>
@@ -721,6 +714,12 @@ export default function HomePage() {
               </div>
             )}
           </section>
+
+          <div className="footer-actions">
+            <button className="ghost-button" type="button" onClick={handleSignOut}>
+              Sign out
+            </button>
+          </div>
         </>
       )}
     </main>
