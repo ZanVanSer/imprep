@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
 import { AuthScreen } from '@/components/auth-screen';
-import { WorkspaceClient } from '@/components/workspace-client';
+import { LoginForm } from '@/components/login-form';
 import { hasSupabasePublicEnv } from '@/lib/supabase-config';
 import { getSupabaseServerClient } from '@/lib/supabase-server';
 
-export default async function HomePage() {
+export default async function LoginPage() {
   if (!hasSupabasePublicEnv()) {
     return (
       <AuthScreen
@@ -16,18 +16,22 @@ export default async function HomePage() {
   }
 
   const supabase = await getSupabaseServerClient();
-  const [
-    {
-      data: { user }
-    },
-    {
-      data: { session }
-    }
-  ] = await Promise.all([supabase.auth.getUser(), supabase.auth.getSession()]);
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
 
-  if (!user || !session) {
-    redirect('/login');
+  if (user) {
+    redirect('/');
   }
 
-  return <WorkspaceClient initialSession={session} />;
+  return (
+    <AuthScreen
+      icon="→"
+      title="Sign in to your workspace"
+      description="Private image processing, export presets, and clean email-ready downloads in one calm place."
+    >
+      <LoginForm />
+    </AuthScreen>
+  );
 }
+

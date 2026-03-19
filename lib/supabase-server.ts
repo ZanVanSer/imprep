@@ -1,4 +1,7 @@
+import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import { getSupabasePublicEnv } from '@/lib/supabase-config';
 
 function requireEnv(name: string) {
   const value = process.env[name];
@@ -8,6 +11,26 @@ function requireEnv(name: string) {
   }
 
   return value;
+}
+
+export async function getSupabaseServerClient() {
+  const cookieStore = await cookies();
+  const { url, anonKey } = getSupabasePublicEnv();
+
+  return createServerClient(url, anonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+        } catch {
+          // Server components can read cookies but may not be able to persist them directly.
+        }
+      }
+    }
+  });
 }
 
 export function getSupabaseAdminClient() {
