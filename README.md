@@ -10,7 +10,7 @@
 
 ## Screenshot
 
-![App screenshot placeholder](./docs/screenshot.png)
+!(./docs/screenshot.png)
 
 
 ## Features
