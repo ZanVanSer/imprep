@@ -424,44 +424,78 @@ export default function HomePage() {
   }
 
   return (
-    <main className="page-shell">
+    <main className={`page-shell ${!session ? 'page-shell-auth' : ''}`}>
       {!supabase ? (
-        <section className="panel auth-panel">
-          <div className="auth-copy">
-            <h1>imprep</h1>
-            <p>Add your Supabase environment variables to enable authentication and private storage.</p>
+        <section className="auth-stage">
+          <div className="auth-brand">
+            <span className="auth-brand-mark">i</span>
+            <strong>imprep</strong>
           </div>
+          <section className="panel auth-panel">
+            <div className="auth-orbit auth-orbit-large" />
+            <div className="auth-orbit auth-orbit-small" />
+            <div className="auth-cloud auth-cloud-left" />
+            <div className="auth-cloud auth-cloud-right" />
+            <div className="auth-icon" aria-hidden="true">
+              <span>•••</span>
+            </div>
+            <div className="auth-copy">
+              <h1>Image prep, beautifully simple</h1>
+              <p>Add your Supabase environment variables to enable authentication and private storage.</p>
+            </div>
+          </section>
         </section>
       ) : !session ? (
-        <section className="panel auth-panel">
-          <div className="auth-copy">
-            <h1>imprep</h1>
-            <p>Sign in to access private image processing and storage.</p>
+        <section className="auth-stage">
+          <div className="auth-brand">
+            <span className="auth-brand-mark">i</span>
+            <strong>imprep</strong>
           </div>
-          <form className="auth-form" onSubmit={handleSignIn}>
-            <label className="field">
-              <span>Email</span>
-              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-            </label>
-            <label className="field">
-              <span>Password</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </label>
-            {errors.length > 0 ? (
-              <ul className="warning-list">
-                {errors.map((error) => (
-                  <li key={error}>{error}</li>
-                ))}
-              </ul>
-            ) : null}
-            <button className="primary-button" type="submit" disabled={isSigningIn}>
-              {isSigningIn ? 'Signing in…' : 'Sign in'}
-            </button>
-          </form>
+          <section className="panel auth-panel">
+            <div className="auth-orbit auth-orbit-large" />
+            <div className="auth-orbit auth-orbit-small" />
+            <div className="auth-cloud auth-cloud-left" />
+            <div className="auth-cloud auth-cloud-right" />
+            <div className="auth-icon" aria-hidden="true">
+              <span>→</span>
+            </div>
+            <div className="auth-copy">
+              <h1>Sign in to your workspace</h1>
+              <p>Private image processing, export presets, and clean email-ready downloads in one calm place.</p>
+            </div>
+            <form className="auth-form" onSubmit={handleSignIn}>
+              <label className="field auth-field">
+                <span>Email</span>
+                <input
+                  type="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
+              </label>
+              <label className="field auth-field">
+                <span>Password</span>
+                <input
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                />
+              </label>
+              {errors.length > 0 ? (
+                <ul className="warning-list">
+                  {errors.map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              ) : null}
+              <button className="primary-button auth-submit" type="submit" disabled={isSigningIn}>
+                {isSigningIn ? 'Signing in…' : 'Get Started'}
+              </button>
+            </form>
+          </section>
         </section>
       ) : (
         <>
