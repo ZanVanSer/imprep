@@ -41,7 +41,9 @@ function StatusPill({ status }: { status: ProcessedImageResult['status'] }) {
 function ResultCard({ result }: { result: ProcessedImageResult }) {
   return (
     <article className="result-card">
-      <img className="result-preview" src={result.previewUrl} alt={result.outputName} loading="lazy" />
+      <div className="result-preview-wrap">
+        <img className="result-preview" src={result.previewUrl} alt={result.outputName} loading="lazy" />
+      </div>
       <div className="result-body">
         <div className="result-topline">
           <div>
@@ -67,7 +69,7 @@ function ResultCard({ result }: { result: ProcessedImageResult }) {
             </dd>
           </div>
           <div>
-            <dt>File Size</dt>
+            <dt>File size</dt>
             <dd>
               {formatBytes(result.originalSizeBytes)} {'->'} {formatBytes(result.finalSizeBytes)}
             </dd>
@@ -79,13 +81,13 @@ function ResultCard({ result }: { result: ProcessedImageResult }) {
         </dl>
         <p className="result-recommendation">{result.recommendation}</p>
         {result.warnings.length > 0 ? (
-          <ul className="warning-list">
+          <ul className="warning-list compact-list">
             {result.warnings.map((warning) => (
               <li key={warning}>{warning}</li>
             ))}
           </ul>
         ) : null}
-        <a className="download-link" href={result.downloadUrl}>
+        <a className="primary-button download-link" href={result.downloadUrl}>
           Download image
         </a>
       </div>
@@ -104,19 +106,19 @@ interface UploadListItem {
 function getUploadStatusLabel(status: UploadItemStatus) {
   switch (status) {
     case 'uploading':
-      return 'uploading';
+      return 'Uploading';
     case 'processing':
-      return 'processing';
+      return 'Processing';
     case 'done':
-      return 'done';
+      return 'Done';
     case 'skipped-too-large':
-      return 'too large';
+      return 'Too large';
     case 'skipped-unsupported':
-      return 'unsupported';
+      return 'Unsupported';
     case 'failed':
-      return 'failed';
+      return 'Failed';
     default:
-      return 'ready';
+      return 'Ready';
   }
 }
 
@@ -157,7 +159,6 @@ export function WorkspaceClient({ initialSession }: { initialSession: Session })
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  const selectedFiles = useMemo(() => uploadItems.map((item) => item.file), [uploadItems]);
   const validFiles = useMemo(
     () =>
       uploadItems.filter(
@@ -169,12 +170,6 @@ export function WorkspaceClient({ initialSession }: { initialSession: Session })
     () => validFiles.reduce((total, item) => total + item.file.size, 0),
     [validFiles]
   );
-  const totalUploadSize = useMemo(
-    () => selectedFiles.reduce((total, file) => total + file.size, 0),
-    [selectedFiles]
-  );
-  const readyCount = uploadItems.filter((item) => item.status === 'ready').length;
-  const skippedCount = uploadItems.filter((item) => item.status.startsWith('skipped')).length;
 
   useEffect(() => {
     const {
@@ -391,262 +386,263 @@ export function WorkspaceClient({ initialSession }: { initialSession: Session })
   }
 
   return (
-    <main className="page-shell">
-      <section className="panel summary-panel">
-        <div className="panel-header">
-          <h1>imprep</h1>
-          <p>Upload images, choose an email preset, and prepare clean exports.</p>
-        </div>
-        <div className="summary-stats">
-          <div>
-            <strong>{uploadItems.length}</strong>
-            <span>files selected</span>
+    <main className="app-shell">
+      <header className="app-header">
+        <div className="brand-block">
+          <div className="brand-mark" aria-hidden="true">
+            im
           </div>
           <div>
-            <strong>{formatBytes(totalUploadSize)}</strong>
-            <span>total upload size</span>
+            <h1>imprep</h1>
+            <p>Prepare email-safe image exports with one batch workflow.</p>
           </div>
         </div>
-      </section>
+        <div className="header-actions">
+          <div className="header-meta">
+            <span>{session?.user.email ?? 'Signed in'}</span>
+            <span>{uploadItems.length} files in queue</span>
+          </div>
+          <button className="secondary-button" type="button" onClick={handleSignOut}>
+            Sign out
+          </button>
+        </div>
+      </header>
 
-      <section className="workspace-grid">
-        <div className="panel stack">
-          <div className="panel-header">
-            <h2>Upload</h2>
-            <p>JPG, PNG, WebP fully supported. GIF is accepted with limited pass-through handling.</p>
-          </div>
-          <label
-            className={`dropzone ${isDragging ? 'dragging' : ''}`}
-            onDragOver={(event) => {
-              event.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-          >
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              multiple
-              onChange={handleFileInput}
-            />
-            <strong>Drop images here or click to browse</strong>
-          </label>
-          {uploadItems.length > 0 ? (
-            <div className="upload-summary">
-              <span>{readyCount} ready</span>
-              <span>{skippedCount} skipped</span>
+      <section className="workspace-layout">
+        <div className="workspace-main">
+          <section className="section-card">
+            <div className="section-head">
+              <div>
+                <h2>Upload</h2>
+                <p>Use JPG, PNG, WebP, or GIF files. Files over {getFileLimitLabel()} are skipped.</p>
+              </div>
             </div>
-          ) : null}
-          {uploadItems.length > 0 ? (
-            <ul className="file-list">
-              {uploadItems.map((item) => (
-                <li key={item.key}>
-                  <div className="file-meta">
-                    <span>{item.file.name}</span>
-                    <small>{item.note}</small>
-                  </div>
-                  <div className="file-trailing">
-                    <span>{formatBytes(item.file.size)}</span>
-                    <span className={`upload-status upload-status-${item.status}`}>
-                      {getUploadStatusLabel(item.status)}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="muted">Upload one or more images to prepare them for email.</p>
-          )}
+
+            <label
+              className={`dropzone ${isDragging ? 'dragging' : ''}`}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+            >
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
+                onChange={handleFileInput}
+              />
+              <strong>Drop images here</strong>
+              <span>Or click to select files from your computer.</span>
+            </label>
+
+            {uploadItems.length > 0 ? (
+              <ul className="file-list">
+                {uploadItems.map((item) => (
+                  <li key={item.key}>
+                    <div className="file-meta">
+                      <strong>{item.file.name}</strong>
+                      <span>{item.note}</span>
+                    </div>
+                    <div className="file-trailing">
+                      <span>{formatBytes(item.file.size)}</span>
+                      <span className={`upload-status upload-status-${item.status}`}>
+                        {getUploadStatusLabel(item.status)}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+
+          <section className="section-card">
+            <div className="section-head">
+              <div>
+                <h2>Results</h2>
+                <p>Processed files appear here with download links and export details.</p>
+              </div>
+              {zipDownloadUrl ? (
+                <a className="primary-button" href={zipDownloadUrl}>
+                  Download ZIP
+                </a>
+              ) : null}
+            </div>
+
+            {results.length === 0 ? (
+              <p className="empty-state">Run a batch to see previews, file savings, and recommendations.</p>
+            ) : (
+              <div className="results-grid">
+                {results.map((result) => (
+                  <ResultCard key={result.id} result={result} />
+                ))}
+              </div>
+            )}
+          </section>
         </div>
 
-        <div className="panel stack">
-          <div className="panel-header">
-            <h2>Settings</h2>
-            <p>Global settings apply to the full batch.</p>
-          </div>
+        <aside className="workspace-sidebar">
+          <section className="section-card">
+            <div className="section-head">
+              <div>
+                <h2>Settings</h2>
+                <p>These options apply to every file in the current batch.</p>
+              </div>
+            </div>
 
-          <div className="preset-grid">
-            {PRESETS.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                className={`preset-card ${settings.preset === preset ? 'active' : ''}`}
-                onClick={() => setSettings((current) => ({ ...current, preset }))}
-              >
-                <strong>{getPresetLabel(preset)}</strong>
-                <span>{getPresetDescription(preset)}</span>
-              </button>
-            ))}
-          </div>
+            <div className="preset-grid">
+              {PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  className={`preset-card ${settings.preset === preset ? 'active' : ''}`}
+                  onClick={() => setSettings((current) => ({ ...current, preset }))}
+                >
+                  <strong>{getPresetLabel(preset)}</strong>
+                  <span>{getPresetDescription(preset)}</span>
+                </button>
+              ))}
+            </div>
 
-          <div className="field-grid">
-            <label className="field">
-              <span>Output format</span>
-              <select
-                value={settings.outputFormat}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    outputFormat: event.target.value as AppSettings['outputFormat']
-                  }))
-                }
-              >
-                <option value="auto">Auto</option>
-                <option value="jpeg">JPEG</option>
-                <option value="png">PNG</option>
-                <option value="webp">WebP</option>
-              </select>
-              {settings.outputFormat === 'webp' ? (
-                <small>WebP is available, but email client support is still mixed.</small>
-              ) : null}
-            </label>
-
-            <label className="field">
-              <span>Compression mode</span>
-              <select
-                value={settings.compressionMode}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    compressionMode: event.target.value as AppSettings['compressionMode']
-                  }))
-                }
-              >
-                <option value="small">Smaller file</option>
-                <option value="balanced">Balanced</option>
-                <option value="sharp">Sharper image</option>
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Retina export</span>
-              <select
-                value={String(settings.retina)}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    retina: event.target.value === 'true'
-                  }))
-                }
-              >
-                <option value="true">On</option>
-                <option value="false">Off</option>
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Filename suffix</span>
-              <input
-                type="text"
-                value={settings.fileSuffix}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    fileSuffix: event.target.value
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field checkbox-field">
-              <input
-                type="checkbox"
-                checked={settings.preserveTransparency}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    preserveTransparency: event.target.checked
-                  }))
-                }
-              />
-              <span>Preserve transparency when Auto chooses the output format</span>
-            </label>
-
-            {settings.preset === 'custom' ? (
+            <div className="field-grid">
               <label className="field">
-                <span>Custom display width (px)</span>
-                <input
-                  type="number"
-                  min={50}
-                  max={2000}
-                  value={settings.customDisplayWidth ?? 600}
+                <span>Output format</span>
+                <select
+                  value={settings.outputFormat}
                   onChange={(event) =>
                     setSettings((current) => ({
                       ...current,
-                      customDisplayWidth: Number.parseInt(event.target.value, 10) || 600
+                      outputFormat: event.target.value as AppSettings['outputFormat']
+                    }))
+                  }
+                >
+                  <option value="auto">Auto</option>
+                  <option value="jpeg">JPEG</option>
+                  <option value="png">PNG</option>
+                  <option value="webp">WebP</option>
+                </select>
+                {settings.outputFormat === 'webp' ? (
+                  <small>WebP support still varies across email clients.</small>
+                ) : null}
+              </label>
+
+              <label className="field">
+                <span>Compression mode</span>
+                <select
+                  value={settings.compressionMode}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      compressionMode: event.target.value as AppSettings['compressionMode']
+                    }))
+                  }
+                >
+                  <option value="small">Smaller file</option>
+                  <option value="balanced">Balanced</option>
+                  <option value="sharp">Sharper image</option>
+                </select>
+              </label>
+
+              <label className="field">
+                <span>Retina export</span>
+                <select
+                  value={String(settings.retina)}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      retina: event.target.value === 'true'
+                    }))
+                  }
+                >
+                  <option value="true">On</option>
+                  <option value="false">Off</option>
+                </select>
+              </label>
+
+              <label className="field">
+                <span>Filename suffix</span>
+                <input
+                  type="text"
+                  value={settings.fileSuffix}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      fileSuffix: event.target.value
                     }))
                   }
                 />
               </label>
-            ) : null}
-          </div>
 
-          <div className="action-row">
-            <button
-              type="button"
-              className="primary-button"
-              onClick={handlePrepare}
-              disabled={uploadItems.length === 0 || isProcessing}
-            >
-              {isProcessing ? 'Preparing…' : 'Prepare'}
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => {
-                setUploadItems([]);
-                setResults([]);
-                setErrors([]);
-                setZipDownloadUrl('');
-              }}
-            >
-              Clear all
-            </button>
-          </div>
-        </div>
-      </section>
+              <label className="field checkbox-field">
+                <input
+                  type="checkbox"
+                  checked={settings.preserveTransparency}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      preserveTransparency: event.target.checked
+                    }))
+                  }
+                />
+                <span>Preserve transparency when Auto selects the output format.</span>
+              </label>
 
-      {errors.length > 0 ? (
-        <section className="panel stack">
-          <div className="panel-header">
-            <h2>Notices</h2>
-          </div>
-          <ul className="warning-list">
-            {errors.map((error) => (
-              <li key={error}>{error}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+              {settings.preset === 'custom' ? (
+                <label className="field">
+                  <span>Custom display width</span>
+                  <input
+                    type="number"
+                    min={50}
+                    max={2000}
+                    value={settings.customDisplayWidth ?? 600}
+                    onChange={(event) =>
+                      setSettings((current) => ({
+                        ...current,
+                        customDisplayWidth: Number.parseInt(event.target.value, 10) || 600
+                      }))
+                    }
+                  />
+                </label>
+              ) : null}
+            </div>
 
-      <section className="panel stack">
-        <div className="results-header">
-          <div className="panel-header">
-            <h2>Results</h2>
-          </div>
-          {zipDownloadUrl ? (
-            <a className="primary-button link-button" href={zipDownloadUrl}>
-              Download all as ZIP
-            </a>
+            <div className="action-row">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={handlePrepare}
+                disabled={uploadItems.length === 0 || isProcessing}
+              >
+                {isProcessing ? 'Preparing…' : 'Prepare batch'}
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setUploadItems([]);
+                  setResults([]);
+                  setErrors([]);
+                  setZipDownloadUrl('');
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </section>
+
+          {errors.length > 0 ? (
+            <section className="section-card">
+              <h2>Notices</h2>
+              <ul className="warning-list">
+                {errors.map((error) => (
+                  <li key={error}>{error}</li>
+                ))}
+              </ul>
+            </section>
           ) : null}
-        </div>
-        {results.length === 0 ? (
-          <p className="muted">Run a batch to see previews, size savings, and download links.</p>
-        ) : (
-          <div className="results-grid">
-            {results.map((result) => (
-              <ResultCard key={result.id} result={result} />
-            ))}
-          </div>
-        )}
+        </aside>
       </section>
-
-      <div className="footer-actions">
-        <button className="ghost-button" type="button" onClick={handleSignOut}>
-          Sign out
-        </button>
-      </div>
     </main>
   );
 }
