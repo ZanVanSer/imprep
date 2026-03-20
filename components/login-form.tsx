@@ -62,9 +62,8 @@ export function LoginForm() {
         </ul>
       ) : null}
       <button className="primary-button auth-submit" type="submit" disabled={isSigningIn}>
-        {isSigningIn ? 'Signing in…' : 'Get Started'}
+        {isSigningIn ? 'Signing in…' : 'Sign in'}
       </button>
     </form>
   );
 }
-

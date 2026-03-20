@@ -8,9 +8,9 @@ export default async function LoginPage() {
   if (!hasSupabasePublicEnv()) {
     return (
       <AuthScreen
-        icon="•••"
-        title="Image prep, beautifully simple"
-        description="Add your Supabase environment variables to enable authentication and private storage."
+        icon="im"
+        title="Set up Supabase to continue"
+        description="Add the public Supabase environment variables to enable sign-in and private storage."
       />
     );
   }
@@ -26,12 +26,11 @@ export default async function LoginPage() {
 
   return (
     <AuthScreen
-      icon="→"
-      title="Sign in to your workspace"
-      description="Private image processing, export presets, and clean email-ready downloads in one calm place."
+      icon="in"
+      title="Sign in"
+      description="Use your workspace credentials to upload, process, and download image batches."
     >
       <LoginForm />
     </AuthScreen>
   );
 }
-

@@ -9,28 +9,20 @@ interface AuthScreenProps {
 
 export function AuthScreen({ title, description, icon, children }: AuthScreenProps) {
   return (
-    <main className="page-shell page-shell-auth">
-      <section className="auth-stage">
+    <main className="auth-shell">
+      <section className="auth-card">
         <div className="auth-brand">
-          <span className="auth-brand-mark">i</span>
+          <span className="auth-brand-mark" aria-hidden="true">
+            {icon}
+          </span>
           <strong>imprep</strong>
         </div>
-        <section className="panel auth-panel">
-          <div className="auth-orbit auth-orbit-large" />
-          <div className="auth-orbit auth-orbit-small" />
-          <div className="auth-cloud auth-cloud-left" />
-          <div className="auth-cloud auth-cloud-right" />
-          <div className="auth-icon" aria-hidden="true">
-            <span>{icon}</span>
-          </div>
-          <div className="auth-copy">
-            <h1>{title}</h1>
-            <p>{description}</p>
-          </div>
-          {children}
-        </section>
+        <div className="auth-copy">
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </div>
+        {children}
       </section>
     </main>
   );
 }
-

@@ -8,9 +8,9 @@ export default async function HomePage() {
   if (!hasSupabasePublicEnv()) {
     return (
       <AuthScreen
-        icon="•••"
-        title="Image prep, beautifully simple"
-        description="Add your Supabase environment variables to enable authentication and private storage."
+        icon="im"
+        title="Set up Supabase to continue"
+        description="Add the public Supabase environment variables to enable sign-in and private storage."
       />
     );
   }
